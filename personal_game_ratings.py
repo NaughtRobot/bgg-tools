@@ -12,6 +12,7 @@ import xmltodict
 sys.getdefaultencoding()
 
 RETRY = 0
+COLLECTION = []
 
 
 def get_args():
@@ -75,12 +76,12 @@ def multikeysort(items, columns):
 
 def get_collection(username):
     """Get user's collection from BGG."""
+    global COLLECTION
     baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
     url = baseurl + ('collection?username={}&own=1'
                      '&rated=1&played=1&stats=1').format(username)
     data = request_data(url)
     doc = xmltodict.parse(data)
-    collection = []
     try:
         for game in doc['items']['item']:
             title = game['name']['#text'].encode('utf-8').strip()
@@ -88,7 +89,7 @@ def get_collection(username):
             mean_rating = game['stats']['rating']['average']['@value']
             plays = game['numplays']
             rating = weighted_average(player_rating, mean_rating, plays)
-            collection.append({'name': title, 'rating': rating,
+            COLLECTION.append({'name': title, 'rating': rating,
                                'plays': plays})
     except KeyError:
         global RETRY
@@ -97,12 +98,14 @@ def get_collection(username):
             get_collection(username)
         else:
             sys.exit(1)
+
+    collection = multikeysort(COLLECTION, ['rating', 'name'])
+
     return collection
 
 
 def display_top_games(collection, count):
     """Display top games based on ratings then number of plays."""
-    collection = multikeysort(collection, ['rating', 'name'])
     print("{0:<5}{1:<7}{2:<7}{3:<100}".format('Rank', 'Rating', 'Plays',
                                               'Game'))
     rank = 1
