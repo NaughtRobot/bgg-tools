@@ -8,3 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 ENTRYPOINT ["python", "./personal_game_ratings.py"]
+CMD ["-h"]
