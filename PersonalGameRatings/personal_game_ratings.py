@@ -26,7 +26,7 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 2.0.1',
+        version='%(prog)s 2.1.0',
         help="Show program's version \
                         number")
     parser.add_argument('-u', '--user', help='BGG username',
@@ -52,7 +52,7 @@ def weighted_average(rating, mean, plays):
     C = mean rating for the game.
     """
     rating, mean, plays = float(rating), float(mean), float(plays)
-    minimum_plays = 10
+    minimum_plays = 25
     rating = (plays / (plays + minimum_plays)) * rating \
         + (minimum_plays / (plays + minimum_plays)) * mean
     return rating
