@@ -26,7 +26,7 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 2.1.0',
+        version='%(prog)s 3.0.0',
         help="Show program's version \
                         number")
     parser.add_argument('-u', '--user', help='BGG username',
@@ -74,6 +74,23 @@ def multikeysort(items, columns):
     return sorted(items, key=cmp_to_key(comparer))
 
 
+def calculate_mean(collection):
+    """Calculate the mean ration for collection"""
+    ratings = []
+    try:
+        for game in collection['items']['item']:
+            ratings.append(float(game['stats']['rating']['@value']))
+    except KeyError:
+        global RETRY
+        if RETRY < 5:
+            RETRY += 1
+            get_collection(username)
+        else:
+            sys.exit(1)
+    mean = sum(ratings)/len(ratings)
+    return mean
+
+
 def get_collection(username):
     """Get user's collection from BGG."""
     global COLLECTION
@@ -82,11 +99,11 @@ def get_collection(username):
                      '&rated=1&played=1&stats=1').format(username)
     data = request_data(url)
     doc = xmltodict.parse(data)
+    mean_rating = calculate_mean(doc)
     try:
         for game in doc['items']['item']:
             title = game['name']['#text'].encode('utf-8').strip()
             player_rating = game['stats']['rating']['@value']
-            mean_rating = game['stats']['rating']['average']['@value']
             plays = game['numplays']
             rating = weighted_average(player_rating, mean_rating, plays)
             COLLECTION.append({'name': title, 'rating': rating,
