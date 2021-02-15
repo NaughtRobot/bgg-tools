@@ -26,7 +26,7 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 3.0.1',
+        version='%(prog)s 3.1.0',
         help="Show program's version \
                         number")
     parser.add_argument('-u', '--user', help='BGG username',
@@ -106,8 +106,8 @@ def get_collection(username):
             player_rating = game['stats']['rating']['@value']
             plays = game['numplays']
             rating = weighted_average(player_rating, mean_rating, plays)
-            COLLECTION.append({'name': title, 'rating': rating,
-                               'plays': plays})
+            COLLECTION.append({'name': title, 'player_rate': player_rating,
+                                'rating': rating, 'plays': plays})
     except KeyError:
         global RETRY
         if RETRY < 5:
@@ -123,13 +123,14 @@ def get_collection(username):
 
 def display_top_games(collection, count):
     """Display top games based on ratings then number of plays."""
-    print("{0:<5}{1:<7}{2:<7}{3:<100}".format('Rank', 'Rating', 'Plays',
-                                              'Game'))
+    print("{0:<5}{1:<7}{2:<9}{3:<7}{4:<100}".format('Rank', 'Rating',
+                                              'Weighted', 'Plays', 'Game'))
     rank = 1
     for game in collection:
         print(
-            "{0:<5d}{1:<7.4f}{2:<7d}{3:<100s}".format(
+            "{0:<5d}{1:<7.1f}{2:<9.4f}{3:<7}{4:<100s}".format(
                 rank, float(
+                    game['player_rate']),float(
                     game['rating']), int(
                     game['plays']), str(
                     game['name']).strip('b').strip('\'').strip('\"')))
