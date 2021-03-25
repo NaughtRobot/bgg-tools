@@ -5,6 +5,7 @@
 import argparse
 import sys
 from functools import cmp_to_key
+from operator import itemgetter
 
 import requests
 import xmltodict
@@ -43,8 +44,8 @@ def request_data(url):
 
 
 def weighted_average(rating, mean, plays):
-    """Weighted average for game ratings."""
-    """
+    """Weighted average for game ratings.
+
     WR = (v/(v+m)*R + (m/(v+m))* C
     R = rating for the game.
     v = number of plays of the game.
@@ -60,7 +61,6 @@ def weighted_average(rating, mean, plays):
 
 def multikeysort(items, columns):
     """Sort dictionary based on multiple keys."""
-    from operator import itemgetter
     comparers = [((itemgetter(col[1:].strip()), 1) if col.startswith('-') else
                   (itemgetter(col.strip()), -1)) for col in columns]
 
@@ -77,16 +77,8 @@ def multikeysort(items, columns):
 def calculate_mean(collection):
     """Calculate the mean ration for collection"""
     ratings = []
-    try:
-        for game in collection['items']['item']:
-            ratings.append(float(game['stats']['rating']['@value']))
-    except KeyError:
-        global RETRY
-        if RETRY < 5:
-            RETRY += 1
-            get_collection(username)
-        else:
-            sys.exit(1)
+    for game in collection['items']['item']:
+        ratings.append(float(game['stats']['rating']['@value']))
     mean = sum(ratings)/len(ratings)
     return mean
 
@@ -135,10 +127,10 @@ def display_top_games(collection, count):
                     game['plays']), str(
                     game['name']).strip('b').strip('\'').strip('\"')))
         if count:
-            if rank >= int(count):
-                break
-            else:
+            if rank < int(count):
                 rank += 1
+            else:
+                sys.exit()
         else:
             rank += 1
 
