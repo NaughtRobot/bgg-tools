@@ -75,7 +75,7 @@ def multikeysort(items, columns):
 
 
 def calculate_mean(collection):
-    """Calculate the mean ration for collection"""
+    """Calculate the mean ration for collection."""
     ratings = []
     for game in collection['items']['item']:
         ratings.append(float(game['stats']['rating']['@value']))
