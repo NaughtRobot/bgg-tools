@@ -88,7 +88,7 @@ def get_collection(username):
     global COLLECTION
     baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
     url = baseurl + ('collection?username={}&own=1'
-                     '&rated=1&played=1&stats=1&brief=1').format(username)
+                     '&rated=1&played=1&stats=1').format(username)
     data = request_data(url)
     doc = xmltodict.parse(data)
     mean_rating = calculate_mean(doc)
