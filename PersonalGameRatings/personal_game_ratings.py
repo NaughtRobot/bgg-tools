@@ -12,7 +12,6 @@ import xmltodict
 
 sys.getdefaultencoding()
 
-RETRY = 0
 COLLECTION = []
 
 
@@ -27,9 +26,8 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 3.1.0',
-        help="Show program's version \
-                        number")
+        version='%(prog)s 3.2.0',
+        help="Show program's version number")
     parser.add_argument('-u', '--user', help='BGG username',
                         required=True, metavar='')
     parser.add_argument('-c', '--count', help='Number of results',
@@ -39,8 +37,13 @@ def get_args():
 
 def request_data(url):
     """Request data from boardgamegeek."""
-    data = requests.get(url)
-    return data.content
+    while True:
+        data = requests.get(url)
+        if not data.status_code == 200 or "try again later" in data.text:
+            continue
+        else:
+            break
+    return data.text
 
 
 def weighted_average(rating, mean, plays):
@@ -92,21 +95,13 @@ def get_collection(username):
     data = request_data(url)
     doc = xmltodict.parse(data)
     mean_rating = calculate_mean(doc)
-    try:
-        for game in doc['items']['item']:
-            title = game['name']['#text'].encode('utf-8').strip()
-            player_rating = game['stats']['rating']['@value']
-            plays = game['numplays']
-            rating = weighted_average(player_rating, mean_rating, plays)
-            COLLECTION.append({'name': title, 'player_rate': player_rating,
-                                'rating': rating, 'plays': plays})
-    except KeyError:
-        global RETRY
-        if RETRY < 5:
-            RETRY += 1
-            get_collection(username)
-        else:
-            sys.exit(1)
+    for game in doc['items']['item']:
+        title = game['name']['#text'].strip()
+        player_rating = game['stats']['rating']['@value']
+        plays = game['numplays']
+        rating = weighted_average(player_rating, mean_rating, plays)
+        COLLECTION.append({'name': title, 'player_rate': player_rating,
+                           'rating': rating, 'plays': plays})
 
     collection = multikeysort(COLLECTION, ['rating', 'name'])
 
@@ -116,7 +111,8 @@ def get_collection(username):
 def display_top_games(collection, count):
     """Display top games based on ratings then number of plays."""
     print("{0:<5}{1:<7}{2:<9}{3:<7}{4:<100}".format('Rank', 'Rating',
-                                              'Weighted', 'Plays', 'Game'))
+                                                    'Weighted', 'Plays',
+                                                    'Game'))
     rank = 1
     for game in collection:
         print(
