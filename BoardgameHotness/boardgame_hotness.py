@@ -15,13 +15,12 @@ def get_hotness():
     """Return current list of hot games on Board Game Geek."""
     url = "https://www.boardgamegeek.com/xmlapi2/hot?boardgame"
     the_list = xmltodict.parse(request_data(url))
-    print("{0:<6s}{1:<7s}{2:100s}".format("Rank","Year","Title"))
+    print(f"{'Rank':<6}{'Year':<7}{'Title':100}")
     count = 1
     for game in the_list['items']['item']:
         if count < 11:
-            print("{0:<6s}{1:<7s}{2:100s}".format(game['@rank'],
-                   game['yearpublished']['@value'],
-                   game['name']['@value']))
+            print(f"{game['@rank']:<6}{game['yearpublished']['@value']:<7}"
+                  f"{game['name']['@value']:100}")
             count += 1
         else:
             break
