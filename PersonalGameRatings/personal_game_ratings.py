@@ -3,16 +3,16 @@
 """Personal BGG Ratings."""
 
 import argparse
+import re
 import sys
 from functools import cmp_to_key
 from operator import itemgetter
+
 
 import requests
 import xmltodict
 
 sys.getdefaultencoding()
-
-COLLECTION = []
 
 
 def get_args():
@@ -89,10 +89,10 @@ def calculate_mean(collection):
 
 def get_collection(username):
     """Get user's collection from BGG."""
-    global COLLECTION
+    collection = []
     baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
-    url = baseurl + ('collection?username={}&own=1'
-                     '&rated=1&played=1&stats=1').format(username)
+    url = baseurl + (f"collection?username={username}&own=1"
+                     '&rated=1&played=1&stats=1')
     data = request_data(url)
     doc = xmltodict.parse(data)
     mean_rating = calculate_mean(doc)
@@ -101,10 +101,10 @@ def get_collection(username):
         player_rating = game['stats']['rating']['@value']
         plays = game['numplays']
         rating = bayesian_average(player_rating, mean_rating, plays)
-        COLLECTION.append({'name': title, 'player_rate': player_rating,
+        collection.append({'name': title, 'player_rate': player_rating,
                            'rating': rating, 'plays': plays})
 
-    collection = multikeysort(COLLECTION, ['rating', 'name'])
+    collection = multikeysort(collection, ['rating', 'name'])
 
     return collection
 
@@ -112,23 +112,17 @@ def get_collection(username):
 def display_top_games(collection, count, detailed):
     """Display top games based on ratings then number of plays."""
     if detailed:
-        print("{0:<5}{1:<7}{2:<7}{3:<100}\n".format('Rank', 'Rating', 'Plays',
-                                                    'Game'))
+        print(f"{'Rank':<5}{'Rating':<7}{'Plays':<7}{'Game':<100}")
     else:
-        print("{0:<5}{1:<100}\n".format('Rank', 'Game'))
-
+        print(f"{'Rank':<5}{'Game':<100}")
     rank = 1
+    rgx = re.compile('[%s]' % 'b\'\"')
     for game in collection:
         if detailed:
-            print(
-                "{0:<5d}{1:<7.1f}{2:<7}{3:<100s}".format(
-                    rank, float(
-                        game['player_rate']), int(
-                        game['plays']), str(
-                        game['name']).strip('b').strip('\'').strip('\"')))
+            print(f"{rank:<5d}{float(game['player_rate']):<7.1f}" \
+                  f"{game['plays']:<7}{rgx.sub('',game['name']):<100s}")
         else:
-            print("{0:<5d}{1:<100s}".format(rank,
-                  game['name'].strip('b').strip('\'').strip('\"')))
+            print(f"{rank:<5d}{rgx.sub('',game['name']):<100s}")
         if count:
             if rank < int(count):
                 rank += 1
