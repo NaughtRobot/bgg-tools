@@ -26,7 +26,7 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 4.0.0',
+        version='%(prog)s 4.0.1',
         help="Show program's version number")
     parser.add_argument('-u', '--user', help='BGG username',
                         required=True, metavar='')
