@@ -10,6 +10,7 @@ from operator import itemgetter
 
 
 import requests
+import requests_cache
 import xmltodict
 
 sys.getdefaultencoding()
@@ -38,7 +39,8 @@ def get_args():
 
 
 def request_data(url):
-    """Request data from boardgamegeek."""
+    """Request data from boardgamegeek."""   
+    requests_cache.install_cache('data_cache')
     while True:
         data = requests.get(url)
         if not data.status_code == 200 or "try again later" in data.text:
