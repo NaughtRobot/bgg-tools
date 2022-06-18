@@ -27,7 +27,7 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 4.1.0',
+        version='%(prog)s 5.0.0',
         help="Show program's version number")
     parser.add_argument('-u', '--user', help='BGG username',
                         required=True, metavar='')
@@ -114,7 +114,8 @@ def get_collection(username):
 def display_top_games(collection, count, detailed):
     """Display top games based on ratings then number of plays."""
     if detailed:
-        print(f"{'Rank':<5}{'Rating':<7}{'Plays':<7}{'Game':<100}")
+        print(f"{'Rank':<5}{'Rating':<7}{'Weighted':<10}{'Plays':<7}" \
+              f"{'Game':<100}")
     else:
         print(f"{'Rank':<5}{'Game':<100}")
     rank = 1
@@ -122,6 +123,7 @@ def display_top_games(collection, count, detailed):
     for game in collection:
         if detailed:
             print(f"{rank:<5d}{float(game['player_rate']):<7.1f}" \
+                  f"{float(game['rating']):<10.4f}" \
                   f"{game['plays']:<7}{rgx.sub('',game['name']):<100s}")
         else:
             print(f"{rank:<5d}{rgx.sub('',game['name']):<100s}")
