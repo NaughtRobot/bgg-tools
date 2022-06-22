@@ -10,7 +10,6 @@ from datetime import datetime
 from functools import cmp_to_key
 from operator import itemgetter
 
-
 import requests
 import requests_cache
 import xmltodict
@@ -29,7 +28,7 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 6.0.0',
+        version='%(prog)s 6.1.0',
         help="Show program's version number")
     parser.add_argument('-u', '--user', help='BGG username',
                         required=True, metavar='')
@@ -41,45 +40,24 @@ def get_args():
 
 
 def request_data(url):
-    """Request data from boardgamegeek."""   
+    """Request data from boardgamegeek."""
     requests_cache.install_cache('data_cache')
-    while True:
-        data = requests.get(url)
-        if not data.status_code == 200 or data.status_code == 202:
-            continue
-        else:
-            break
+    data = requests.get(url)
+    while not data.status_code == 200:
+        request_data(url)
     return data.text
 
-
-def bayesian_average(rating, mean, plays, lastPlayed):
-    """Bayesian average for game based on number of plays.
-
-    BA = R*(p+m)*M/(p+m)
-    R = rating for the game.
-    p = number of plays of the game.
-    m = minimum number of plays of the game.
-    M = mean rating for all games rated and owned.
-    """
-    minimum_plays = 5
-    rating, mean, plays = float(rating), float(mean), float(plays)
-    bayes_avg = (rating * plays + minimum_plays * mean / plays + minimum_plays)
-    days = datetime.now() - datetime.strptime(lastPlayed, "%Y-%m-%d")
-    days = days.days
-    freshness = bayes_avg/math.log(days+2)
-    return freshness
-
-def get_last_play(username,gameID):
+def get_last_play(username,game_id):
     """Get last date user played a game."""
     baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
-    url = baseurl + (f"plays?username={username}&id={gameID}")
+    url = baseurl + (f"plays?username={username}&id={game_id}")
     data = request_data(url)
     doc = xmltodict.parse(data)
     try:
-        lastPlayed = doc['plays']['play'][0]['@date']
+        last_played = doc['plays']['play'][0]['@date']
     except KeyError:
-        lastPlayed =  doc['plays']['play']['@date']
-    return lastPlayed
+        last_played =  doc['plays']['play']['@date']
+    return last_played
 
 def multikeysort(items, columns):
     """Sort dictionary based on multiple keys."""
@@ -96,17 +74,56 @@ def multikeysort(items, columns):
     return sorted(items, key=cmp_to_key(comparer))
 
 
-def calculate_mean(collection):
-    """Calculate the mean ration for collection."""
-    ratings = []
-    for game in collection['items']['item']:
-        ratings.append(float(game['stats']['rating']['@value']))
-    mean = sum(ratings)/len(ratings)
-    return mean
+def calculate_freshness(game_id, username, rating, mean, plays):
+    """Calculate Freshness Rating"""
 
+    def calculate_bayesian_average(rating, mean, plays):
+        """Bayesian average for game based on number of plays.
+
+        BA = R*(p+m)*M/(p+m)
+        R = rating for the game.
+        p = number of plays of the game.
+        m = minimum number of plays of the game.
+        M = mean rating for all games rated and owned.
+        """
+        minimum_plays = 5
+        rating, mean, plays = float(rating), float(mean), float(plays)
+        bayesian_average = (rating * plays + minimum_plays * mean / plays + minimum_plays)
+        return bayesian_average
+
+    def days_since_last_played(last_played):
+        days = datetime.now() - datetime.strptime(last_played, "%Y-%m-%d")
+        return days.days
+
+    last_played = get_last_play(username,game_id)
+    days = days_since_last_played(last_played)
+    bayesian_average = calculate_bayesian_average(rating, rating, plays)
+    freshness = bayesian_average/math.log(days+2)
+
+    return freshness
 
 def get_collection(username):
     """Get user's collection from BGG."""
+    def calculate_mean(collection):
+        """Calculate the mean ration for collection."""
+        ratings = []
+        for game in collection['items']['item']:
+            ratings.append(float(game['stats']['rating']['@value']))
+        mean = sum(ratings)/len(ratings)
+        return mean
+
+    def get_last_play(username,game_id):
+        """Get last date user played a game."""
+        baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
+        url = baseurl + (f"plays?username={username}&id={game_id}")
+        data = request_data(url)
+        doc = xmltodict.parse(data)
+        try:
+            last_played = doc['plays']['play'][0]['@date']
+        except KeyError:
+            last_played =  doc['plays']['play']['@date']
+        return last_played
+
     collection = []
     baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
     url = baseurl + (f"collection?username={username}&own=1"
@@ -115,14 +132,14 @@ def get_collection(username):
     doc = xmltodict.parse(data)
     mean_rating = calculate_mean(doc)
     for game in doc['items']['item']:
-        gameId = game['@objectid']
+        game_id = game['@objectid']
         title = game['name']['#text'].strip()
         player_rating = game['stats']['rating']['@value']
         plays = game['numplays']
-        lastPlayed = get_last_play(username,gameId)
-        rating = bayesian_average(player_rating, mean_rating, plays, lastPlayed)
+        last_played = get_last_play(username,game_id)
+        rating = calculate_freshness(game_id, username, player_rating, mean_rating, plays)
         collection.append({'name': title, 'player_rate': player_rating,
-                           'rating': rating, 'plays': plays, 'last_played': lastPlayed})
+                           'rating': rating, 'plays': plays, 'last_played': last_played})
 
     collection = multikeysort(collection, ['rating', 'name'])
 
