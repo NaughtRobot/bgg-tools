@@ -13,6 +13,7 @@ from operator import itemgetter
 import requests
 import requests_cache
 import xmltodict
+import pandas
 from dateutil.relativedelta import relativedelta
 
 sys.getdefaultencoding()
@@ -33,7 +34,7 @@ def get_args():
         help="Show program's version number")
     parser.add_argument('-u', '--user', help='BGG username',
                         required=True, metavar='')
-    parser.add_argument('-m', '--mounths', help='Last X months',
+    parser.add_argument('-m', '--months', help='Last X months',
                         required=True, metavar='')    
     parser.add_argument('-c', '--count', help='Number of results',
                         required=False, metavar='', default=12)                
@@ -75,43 +76,27 @@ def multikeysort(items, columns):
     return sorted(items, key=cmp_to_key(comparer))
 
 
-def get_plays(username):
+def get_plays(username, months):
     """Get user's played games over X months."""
-    months = 12
-    min_date = get_pervious_date(months)
+    min_date = get_pervious_date(int(months))
     plays = []
     baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
     url = baseurl + (f"plays?username={username}&mindate={min_date}")
     data = request_data(url)
     doc = xmltodict.parse(data)
 
-for game in doc['plays']['play']:
-    title = game['item']['@name'].strip()
-    quantity = int(game['@quantity'])
-    print(f"{title} - {quantity}")
-    if any(plays):
-        next((game.update(plays=game['plays'] + 1) for game in plays if game['name'] == title), plays.append({'name':title,'plays':quantity}))
-    else:
-        plays.append({'name':title,'plays':quantity})
-
-    plays = multikeysort(play_quantity, ['count', 'name'])
+    for game in doc['plays']['play']:
+        title = game['item']['@name'].strip()
+        quantity = int(game['@quantity'])
+        plays.append(title)
 
     return plays
 
 def display_hot_games(plays):
-    rank = 1
-    count = 10
-    rgx = re.compile('[%s]' % 'b\'\"')
-    for play in plays:
-        print(f"{rank:<5d}{rgx.sub('',play['name']):<100s}")
-        if count:
-            if rank < int(count):
-                rank += 1
-            else:
-                sys.exit()
-        else:
-            rank += 1
+    count = pandas.Series(plays).value_counts()
+    print(f"{'Game':<6}{'Plays'}")
+    print(count)
 
 if __name__ == "__main__":
     ARGS = get_args()
-    display_hot_games(get_plays(ARGS.user))
+    display_hot_games(get_plays(ARGS.user, ARGS.months))
