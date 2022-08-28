@@ -11,7 +11,6 @@ from functools import cmp_to_key
 from operator import itemgetter
 
 import requests
-import requests_cache
 import xmltodict
 
 sys.getdefaultencoding()
@@ -41,7 +40,6 @@ def get_args():
 
 def request_data(url):
     """Request data from boardgamegeek."""
-    requests_cache.install_cache('data_cache')
     data = requests.get(url)
     while not data.status_code == 200:
         request_data(url)
