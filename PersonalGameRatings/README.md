@@ -12,3 +12,11 @@ Here is the formula used to calculate the Bayesian average for a game. It accoun
     M = mean rating for all games rated and owned.
 
 For the minimum number of play, I have initially set the value to five. As I log more game plays this value may be raised. As it stands now there is some wild variance in a few of my lower ranked games that causes them to appear higher on the top ten list than they should after a single play. With additional plays the list should even out over time. As for now I'm leaving the minimum number of plays set to five.
+
+## Freshness Score
+To account for games that I have played a number of times in the past but no longer play I have included a "freshness" rating in combination with the Bayesian average. I goal with the "freshness" rating is to weed out games that make the top ten list but aren't played as often as they use to be. Thus helping to determine my overall top ten games.
+
+    F = BA/log(D+2)
+
+    BA = Bayesian average
+    D = Days since the game was played last.
