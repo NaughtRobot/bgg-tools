@@ -27,7 +27,7 @@ def get_args():
         '-v',
         '--version',
         action='version',
-        version='%(prog)s 6.1.0',
+        version='%(prog)s 6.1.1',
         help="Show program's version number")
     parser.add_argument('-u', '--user', help='BGG username',
                         required=True, metavar='')
@@ -42,7 +42,7 @@ def request_data(url):
     """Request data from boardgamegeek."""
     data = requests.get(url)
     while not data.status_code == 200:
-        request_data(url)
+        data = requests.get(url)
     return data.text
 
 def get_last_play(username,game_id):
