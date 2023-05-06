@@ -47,7 +47,7 @@ def request_data(url):
 
 def get_last_play(username,game_id):
     """Get last date user played a game."""
-    baseurl = 'https://www.boardgamegeek.com/xmlapi2/'
+    baseurl = 'https://api.geekdo.com/xmlapi2/'
     url = baseurl + (f"plays?username={username}&id={game_id}")
     data = request_data(url)
     doc = xmltodict.parse(data)
